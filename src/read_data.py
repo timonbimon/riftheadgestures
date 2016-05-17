@@ -12,7 +12,7 @@ import tensorflow as tf
 
 flags = tf.app.flags
 # measurements
-flags.DEFINE_integer('max_seq_length', 150, 'Maximum length of sequence allwoed')
+flags.DEFINE_integer('max_seq_length', 200, 'Maximum length of sequence allwoed')
 flags.DEFINE_integer('seq_width', 11, 'Number of features')
 # datasets
 flags.DEFINE_float('train_split', 0.7, 'Percentag of data used for training')
@@ -40,8 +40,8 @@ class DataSet(object):
             # Finished epoch
             self._epochs += 1
             # Shuffle the data
-            perm = numpy.arange(self._num_meas)
-            numpy.random.shuffle(perm)
+            perm = np.arange(self._num_meas)
+            np.random.shuffle(perm)
             self._measurements = self._measurements[perm]
             self._seq_lengths = self._seq_lengths[perm]
             self._labels = self._labels[perm]
@@ -55,6 +55,7 @@ class DataSet(object):
                self._labels[start:end])
 
 def read_data(data_path):
+    print "Reading in data..."
     files = glob.glob(os.path.join(data_path, "*.csv"));
     # get num of data points and init numpy arrays
     num_meas = len(files)
@@ -71,17 +72,29 @@ def read_data(data_path):
 
         next_meas = np.genfromtxt(filename, delimiter=',')
         len_seq = next_meas.shape[0]
-        if len_seq > MAX_SEQ_LENGTH:
-            print "Sequence is too long: " + len_seq
-            len_seq = MAX_SEQ_LENGTH
-        measurements[i] = next_meas.resize(FLAGS.max_seq_length, FLAGS.seq_width)
+        if len_seq > FLAGS.max_seq_length:
+            print "Sequence is too long: " + str(len_seq)
+            len_seq = FLAGS.max_seq_length
+
+        next_meas.resize(FLAGS.max_seq_length, FLAGS.seq_width)
+        measurements[i] = next_meas
 
         seq_lengths[i] = len_seq
+    # convert datatype
+    measurements.astype(np.float32)
+    seq_lengths.astype(int)
+    labels.astype(int)
+    # permute data
+    perm = np.arange(num_meas)
+    np.random.shuffle(perm)
+    measurements = measurements[perm]
+    seq_lengths = seq_lengths[perm]
+    labels = labels[perm]
     # output statistic
     print "Read in %d sequences" % num_meas
-    print "YES: " + lab2num["YES"][1]
-    print "NO: " + lab2num["NO"][1]
-    print "NULL: " + lab2num["NULL"][1]
+    print "YES: %d" % lab2num["YES"][1]
+    print "NO: %d" % lab2num["NO"][1]
+    print "NULL: %d" % lab2num["NULL"][1]
     return (measurements, seq_lengths, labels)
 
 def get_datasets(data_path):
@@ -112,4 +125,8 @@ def get_datasets(data_path):
 
 
 if __name__ == "__main__":
-    pass
+    _,_,test_set = get_datasets('../data')
+    measurements, seq_length, labs = test_set.next_batch(5)
+    print measurements
+    print seq_length
+    print labs
