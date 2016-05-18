@@ -5,14 +5,15 @@ __author__ = "timon"
 
 import tensorflow as tf
 import time
+import sys
 
 import read_data
 import lstm
 
 
 flags = tf.app.flags
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
+flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
+flags.DEFINE_integer('max_steps', 1000, 'Number of steps to run trainer.')
 flags.DEFINE_string('data_dir', '../data', 'Directory to put the data.')
 FLAGS = flags.FLAGS
 
@@ -66,6 +67,7 @@ def run_training():
     loss = lstm.loss(logits, labels)
     # Add to the Graph the Ops that calculate and apply gradients.
     print "Build optimization part..."
+    print "Using learning rate %f" % FLAGS.learning_rate
     train_op = lstm.training(loss, FLAGS.learning_rate)
     # Add the Op to compare the logits to the labels during evaluation.
     print "Build evaluation part..."
@@ -88,48 +90,48 @@ def run_training():
         for step in xrange(FLAGS.max_steps):
             start_time = time.time()
 
-        # Fill a feed dictionary with the actual set of measurements,
-        # sequence lengths and labels for this particular training step.
-        feed_dict = fill_feed_dict(train_set,
-                                   seq_input, early_stop, labels)
+            # Fill a feed dictionary with the actual set of measurements,
+            # sequence lengths and labels for this particular training step.
+            feed_dict = fill_feed_dict(train_set,
+                                    seq_input, early_stop, labels)
 
-        # Run one step of the model.  The return values are the activations
-        # from the `train_op` (which is discarded) and the `loss` Op.
-        _, loss_value = sess.run([train_op, loss],
-                                feed_dict=feed_dict)
+            # Run one step of the model.  The return values are the activations
+            # from the `train_op` (which is discarded) and the `loss` Op.
+            _, loss_value = sess.run([train_op, loss],
+                                    feed_dict=feed_dict)
 
-        duration = time.time() - start_time
+            duration = time.time() - start_time
 
-        # Write the summaries and print an overview fairly often.
-        if step % 5 == 0:
-            # Print status to stdout.
-            print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
-            # Update the events file.
-            summary_str = sess.run(summary_op, feed_dict=feed_dict)
-            summary_writer.add_summary(summary_str, step)
-            summary_writer.flush()
+            # Write the summaries and print an overview fairly often.
+            if step % 5 == 0:
+                # Print status to stdout.
+                print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
+                # Update the events file.
+                summary_str = sess.run(summary_op, feed_dict=feed_dict)
+                summary_writer.add_summary(summary_str, step)
+                summary_writer.flush()
 
-        # Save a checkpoint and evaluate the model
-        if (step + 1) == FLAGS.max_steps:
-            saver.save(sess, FLAGS.data_dir, global_step=step)
-            # Evaluate against the training set.
-            print('Training Data Eval:')
-            do_eval(sess,
-                    eval_correct,
-                    seq_input,
-                    early_stop,
-                    labels,
-                    train_set)
-            # Evaluate against the validation set.
-            print('Validation Data Eval:')
-            do_eval(sess,
-                    eval_correct,
-                    seq_input,
-                    early_stop,
-                    labels,
-                    val_set)
+            # Save a checkpoint and evaluate the model
+            if (step + 1) == FLAGS.max_steps:
+                saver.save(sess, FLAGS.data_dir, global_step=step)
+                # Evaluate against the training set.
+                print('Training Data Eval:')
+                do_eval(sess,
+                        eval_correct,
+                        seq_input,
+                        early_stop,
+                        labels,
+                        train_set)
+                # Evaluate against the validation set.
+                print('Validation Data Eval:')
+                do_eval(sess,
+                        eval_correct,
+                        seq_input,
+                        early_stop,
+                        labels,
+                        val_set)
 
-def main(*arg):
+def main(argv):
     run_training()
 
 if __name__ == "__main__":
