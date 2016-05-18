@@ -19,6 +19,7 @@ flags.DEFINE_float('train_split', 0.7, 'Percentag of data used for training')
 flags.DEFINE_float('val_split', 0.15, 'Percentag of data used for validation')
 flags.DEFINE_float('test_split', 0.15, 'Percentag of data used for testing')
 # labels
+flags.DEFINE_integer('num_classes', 3, 'Number of different classes')
 flags.DEFINE_integer('yes', 0, 'Coded label for YES')
 flags.DEFINE_integer('no', 1, 'Coded label for NO')
 flags.DEFINE_integer('null', 2, 'Coded label for NULL')
@@ -32,6 +33,10 @@ class DataSet(object):
         self._num_meas = measurements.shape[0]
         self._index = 0
         self._epochs = 0
+
+    @property
+    def num_meas(self):
+        return self._num_meas
 
     def next_batch(self, batch_size):
         start = self._index
@@ -48,7 +53,7 @@ class DataSet(object):
             # Start next epoch
             start = 0
             self._index = batch_size
-            assert batch_size <= self._num_examples
+            assert batch_size <= self._num_meas
         end = self._index
         return (self._measurements[start:end],
                self._seq_lengths[start:end],
@@ -82,8 +87,8 @@ def read_data(data_path):
         seq_lengths[i] = len_seq
     # convert datatype
     measurements.astype(np.float32)
-    seq_lengths.astype(int)
-    labels.astype(int)
+    seq_lengths.astype(np.int32)
+    labels.astype(np.int64)
     # permute data
     perm = np.arange(num_meas)
     np.random.shuffle(perm)
